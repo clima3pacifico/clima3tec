@@ -1,0 +1,6 @@
+node_modules/
+clima3tec.db*
+uploads/*
+!uploads/.gitkeep
+*.log
+.env

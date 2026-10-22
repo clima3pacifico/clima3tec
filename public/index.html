@@ -1,0 +1,10 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clima 3 Tec</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b2545"><link rel="stylesheet" href="estilos.css"></head>
+<body><header><b>CLIMA 3 <span>TEC</span></b><span class="demo">PROTOTIPO DEMO</span></header>
+<div class="card login"><h2>Iniciar sesión</h2><p style="font-size:13px">Red cerrada: solo técnicos dados de alta por Clima 3 del Pacífico.</p>
+<label>Usuario</label><input id="u" autocomplete="username"><label>Contraseña</label><input id="p" type="password">
+<button style="width:100%" onclick="entrar()">Entrar</button><p style="font-size:12px;color:#667">DEMO: admin / tec1 / tec2 / tec3 — contraseña demo123</p></div>
+<script src="comun.js"></script><script>
+async function entrar(){try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:u.value,password:p.value})});const j=await r.json();if(!r.ok)throw new Error(j.error);
+S.t=j.token;localStorage.c3nom=j.nombre;location=j.rol==='admin'?'/admin.html':'/tecnico.html'}catch(e){toast(e.message)}}
+p.onkeydown=e=>e.key==='Enter'&&entrar();if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');</script></body></html>

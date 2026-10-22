@@ -1,0 +1,40 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clima 3 Tec</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b2545"><link rel="stylesheet" href="estilos.css"></head>
+<body><header><b>CLIMA 3 <span>TEC</span> <span class="demo">DEMO</span></b><button class="chico sec" onclick="salir()">Salir</button></header><main>
+<p id="hola" style="margin:0 0 8px;font-weight:600"></p>
+<nav class="tabs"><button data-t="bolsa" class="on">Bolsa</button><button data-t="mios">Mis trabajos</button><button data-t="ganancias">Ganancias</button></nav>
+<section id="bolsa"></section><section id="mios" hidden></section><section id="ganancias" hidden></section><section id="trabajo" hidden></section></main>
+<script src="comun.js"></script><script>
+hola.textContent='Hola, '+(localStorage.c3nom||'');let ACT=null;
+const tab=t=>{document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==t)};
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ACT=null;tab(b.dataset.t);cargar()});
+const gps=()=>new Promise(r=>{if(!navigator.geolocation)return r({});navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r({}),{timeout:5000})});
+async function aceptar(id){try{await api(`/api/trabajos/${id}/aceptar`,{method:'POST',body:await gps()});toast('¡Trabajo aceptado!');abrir(id)}catch(e){toast(e.message);cargar()}}
+async function cargar(){const b=await api('/api/bolsa');
+bolsa.innerHTML=(b.length?'':'<div class="card">No hay trabajos disponibles por ahora.</div>')+b.map(t=>`<div class="card"><div style="display:flex;justify-content:space-between"><b>${esc(t.cliente)}</b><span class="pago">${money(t.pago)}</span></div>
+<div>${t.urgencia==='urgente'?'<span class="tag urgente">URGENTE</span>':''}<span class="tag">${t.tipo}</span><span class="tag">${t.fecha.replace('T',' ')}</span></div><p style="margin:6px 0">📍 ${esc(t.direccion)}</p><p style="margin:6px 0;font-size:14px">${esc(t.notas)}</p><button style="width:100%" onclick="aceptar(${t.id})">Aceptar trabajo</button></div>`).join('');
+const m=await api('/api/mis-trabajos');mios.innerHTML=m.map(t=>`<div class="card" onclick="abrir(${t.id})"><b>#${t.id} ${esc(t.cliente)}</b> <span class="estado">${ESTADOS[t.estado]}</span><br>${t.tipo} · ${money(t.pago)}</div>`).join('')||'<div class="card">Sin trabajos.</div>';
+const g=await api('/api/ganancias');ganancias.innerHTML=`<div class="card"><p>Aprobado (por cobrar)</p><div class="pago">${money(g.aprobado)}</div><p>En proceso</p><div class="pago" style="color:var(--navy)">${money(g.pendiente)}</div><p>${g.trabajos} trabajos aprobados</p></div>`}
+const SIG={aceptado:['en_camino','Voy en camino'],en_camino:['en_sitio','Llegué al sitio'],en_sitio:['terminado','Terminar trabajo']};
+const CHK=['Revisión eléctrica','Limpieza de filtros','Limpieza de serpentín','Revisión de gas / fugas','Prueba de funcionamiento'];
+async function abrir(id){ACT=id;tab('trabajo');const t=await api('/api/trabajos/'+id);const L=t.lecturas;const ch=t.checklist.length?t.checklist:CHK.map(x=>({txt:x,ok:false}));const ed=['aceptado','en_camino','en_sitio'].includes(t.estado);
+trabajo.innerHTML=`<div class="card"><b>#${t.id} ${esc(t.cliente)}</b> <span class="estado">${ESTADOS[t.estado]}</span><p style="margin:6px 0">📍 ${esc(t.direccion)}</p>
+<a href="https://maps.google.com/?q=${encodeURIComponent(t.direccion)}" target="_blank">Abrir en mapas</a> · <span class="pago" style="font-size:16px">${money(t.pago)}</span><p style="font-size:14px">${esc(t.notas)}</p></div>
+<div class="card"><h4>Checklist</h4>${ch.map((c,i)=>`<label style="display:block;font-weight:400"><input type="checkbox" class="chk" data-txt="${esc(c.txt)}" ${c.ok?'checked':''} style="width:auto"> ${esc(c.txt)}</label>`).join('')}</div>
+<div class="card"><h4>Lecturas</h4><div class="grid" style="grid-template-columns:1fr 1fr 1fr"><div><label>Presión psi</label><input id="l_p" value="${esc(L.presion||'')}" inputmode="decimal"></div><div><label>Amperaje A</label><input id="l_a" value="${esc(L.amperaje||'')}" inputmode="decimal"></div><div><label>Temp. °C</label><input id="l_t" value="${esc(L.temperatura||'')}" inputmode="decimal"></div></div>
+<label>Materiales usados</label><textarea id="mat">${esc(t.materiales)}</textarea>${ed?'<button class="sec" onclick="guardar()">Guardar avances</button>':''}</div>
+<div class="card"><h4>Fotos</h4><div class="fotos">${t.fotos.map(f=>`<figure style="display:inline-block;margin:0"><img src="/uploads/${f.archivo}" style="width:100px;height:75px"><figcaption style="font-size:11px">${f.tipo}</figcaption></figure>`).join('')||'Sin fotos'}</div>
+${ed?`<label>Foto ANTES</label><input type="file" accept="image/*" capture="environment" onchange="foto(this,'antes')"><label>Foto DESPUÉS</label><input type="file" accept="image/*" capture="environment" onchange="foto(this,'despues')">`:''}</div>
+<div class="card"><h4>Firma del cliente</h4>${t.firma?`<img src="/uploads/${t.firma}" style="width:100%;border:1px solid #ddd;border-radius:8px">`:ed?'<canvas id="firma"></canvas><button class="chico sec" onclick="limpiar()">Borrar</button> <button class="chico" onclick="guardarFirma()">Guardar firma</button>':''}</div>
+${SIG[t.estado]?`<div class="bar"><button onclick="estado('${SIG[t.estado][0]}')">${SIG[t.estado][1]}</button></div>`:''}`;if($('#firma'))initFirma()}
+let cx,dib=false;function initFirma(){const c=$('#firma');c.width=c.offsetWidth;c.height=180;cx=c.getContext('2d');cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#0b2545';
+const pt=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};c.onpointerdown=e=>{dib=true;cx.beginPath();cx.moveTo(...pt(e))};c.onpointermove=e=>{if(dib){cx.lineTo(...pt(e));cx.stroke()}};c.onpointerup=c.onpointerleave=()=>dib=false}
+function limpiar(){cx.clearRect(0,0,9999,9999)}
+async function guardarFirma(){await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{firma:$('#firma').toDataURL('image/png')}});toast('Firma guardada');abrir(ACT)}
+async function guardar(){await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{checklist:[...document.querySelectorAll('.chk')].map(c=>({txt:c.dataset.txt,ok:c.checked})),lecturas:{presion:l_p.value,amperaje:l_a.value,temperatura:l_t.value},materiales:mat.value}});toast('Guardado')}
+function foto(inp,tipo){const f=inp.files[0];if(!f)return;const img=new Image();img.onload=async()=>{const c=document.createElement('canvas'),s=Math.min(1,1280/img.width);c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{foto:c.toDataURL('image/jpeg',.8),fotoTipo:tipo}});toast('Foto subida');abrir(ACT)};img.src=URL.createObjectURL(f)}
+async function estado(e){try{if(document.querySelector('.chk'))await guardar();await api(`/api/trabajos/${ACT}/estado`,{method:'POST',body:{estado:e,...await gps()}});toast(ESTADOS[e]);abrir(ACT)}catch(x){toast(x.message)}}
+if(!S.t)location='/';cargar();vivo(d=>{if(!ACT)cargar();if(d.tipo==='nuevo')toast('🔔 Nuevo trabajo disponible')});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');
+</script></body></html>

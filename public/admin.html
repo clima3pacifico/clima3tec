@@ -1,0 +1,43 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clima 3 Tec · Admin</title><link rel="stylesheet" href="estilos.css"></head>
+<body><header><b>CLIMA 3 <span>TEC</span> · Panel Admin <span class="demo">DEMO</span></b><button class="chico sec" onclick="salir()">Salir</button></header><main>
+<nav class="tabs"><button data-t="tablero" class="on">Tablero</button><button data-t="publicar">Publicar trabajo</button><button data-t="tecnicos">Técnicos</button><button data-t="pagos">Pagos</button></nav>
+<section id="tablero"><div class="tablero" id="cols"></div><div id="detalle"></div></section>
+<section id="publicar" hidden><div class="card"><h3>Publicar trabajo</h3><div class="grid g2">
+<div><label>Cliente</label><input id="j_cliente"></div><div><label>Dirección</label><input id="j_direccion"></div>
+<div><label>Tipo de servicio</label><select id="j_tipo"><option value="minisplit">Minisplit</option><option value="central">Central</option><option value="chiller">Chiller</option><option value="refrigeracion">Refrigeración</option></select></div>
+<div><label>Fecha y hora</label><input id="j_fecha" type="datetime-local"></div>
+<div><label>Pago al técnico (MXN)</label><input id="j_pago" type="number"></div>
+<div><label>Urgencia</label><select id="j_urgencia"><option value="normal">Normal</option><option value="urgente">Urgente</option></select></div>
+<div><label>Publicar a</label><select id="j_destino" onchange="destOpts()"><option value="todos">Todos los técnicos activos</option><option value="especialidad">Por especialidad</option><option value="zona">Por zona</option><option value="directo">Asignar directo</option></select></div>
+<div><label>Valor</label><select id="j_valor"></select></div></div>
+<label>Notas</label><textarea id="j_notas"></textarea><button onclick="publicar()">Publicar</button></div></section>
+<section id="tecnicos" hidden><div class="card"><h3>Alta de técnico</h3><div class="grid g2">
+<div><label>Nombre</label><input id="t_nombre"></div><div><label>Teléfono</label><input id="t_tel"></div>
+<div><label>Usuario</label><input id="t_usuario"></div><div><label>Contraseña inicial</label><input id="t_pass"></div>
+<div><label>Zona</label><select id="t_zona"><option>Norte</option><option>Centro</option><option>Sur</option><option>Poniente</option></select></div>
+<div><label>Especialidades</label><div id="t_esp"></div></div></div><button onclick="altaTec()">Dar de alta</button></div>
+<div class="card"><table id="tabTec"></table></div></section>
+<section id="pagos" hidden><div class="card"><h3>Reporte de pagos por técnico</h3><table id="tabPagos"></table></div></section>
+</main><script src="comun.js"></script><script>
+const ESP=['minisplit','central','chiller','refrigeracion'],ZON=['Norte','Centro','Sur','Poniente'];let TECS=[];
+t_esp.innerHTML=ESP.map(e=>`<label style="font-weight:400;margin-right:10px"><input type="checkbox" value="${e}" style="width:auto"> ${e}</label>`).join('');
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==b.dataset.t);cargar()});
+function destOpts(){const d=j_destino.value;j_valor.innerHTML=d==='especialidad'?ESP.map(e=>`<option>${e}</option>`).join(''):d==='zona'?ZON.map(z=>`<option>${z}</option>`).join(''):d==='directo'?TECS.filter(t=>t.activo).map(t=>`<option value="${t.id}">${esc(t.nombre)}</option>`).join(''):'<option value="">—</option>'}
+async function publicar(){try{await api('/api/trabajos',{method:'POST',body:{cliente:j_cliente.value,direccion:j_direccion.value,tipo:j_tipo.value,fecha:j_fecha.value,pago:j_pago.value,urgencia:j_urgencia.value,destino:j_destino.value,destino_valor:j_valor.value,notas:j_notas.value}});toast('Trabajo publicado');document.querySelector('[data-t=tablero]').click()}catch(e){toast(e.message)}}
+async function altaTec(){try{await api('/api/tecnicos',{method:'POST',body:{nombre:t_nombre.value,telefono:t_tel.value,usuario:t_usuario.value,password:t_pass.value,zona:t_zona.value,especialidades:[...t_esp.querySelectorAll('input:checked')].map(i=>i.value)}});toast('Técnico dado de alta');cargar()}catch(e){toast(e.message)}}
+async function activar(id,a){await api('/api/tecnicos/'+id,{method:'PATCH',body:{activo:a}});cargar()}
+async function verDet(id){const t=await api('/api/trabajos/'+id);const L=t.lecturas||{};
+detalle.innerHTML=`<div class="card"><h3>#${t.id} ${esc(t.cliente)} <span class="estado">${ESTADOS[t.estado]}</span></h3><p>${esc(t.direccion)} · ${t.tipo} · ${t.fecha} · ${money(t.pago)} · Técnico: ${esc(t.tecnico||'—')}</p>
+<p><b>Checklist:</b> ${t.checklist.map(c=>`<span class="tag">${c.ok?'✅':'⬜'} ${esc(c.txt)}</span>`).join('')||'—'}</p>
+<p><b>Lecturas:</b> Presión ${esc(L.presion||'—')} psi · Amperaje ${esc(L.amperaje||'—')} A · Temp. ${esc(L.temperatura||'—')} °C</p><p><b>Materiales:</b> ${esc(t.materiales||'—')}</p>
+<div class="fotos">${t.fotos.map(f=>`<figure style="display:inline-block;margin:0"><img src="/uploads/${f.archivo}"><figcaption style="font-size:12px">${f.tipo}</figcaption></figure>`).join('')}
+${t.firma?`<figure style="display:inline-block;margin:0"><img src="/uploads/${t.firma}" style="background:#fff;border:1px solid #ddd"><figcaption style="font-size:12px">firma cliente</figcaption></figure>`:''}</div>
+<p><b>Bitácora GPS:</b> ${t.eventos.map(e=>`<span class="tag">${ESTADOS[e.estado]} ${new Date(e.ts.replace(' ','T')+'Z').toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})} ${e.lat?`(${(+e.lat).toFixed(4)}, ${(+e.lng).toFixed(4)})`:''}</span>`).join('')}</p>
+${t.estado==='terminado'?`<button onclick="aprobar(${t.id})">Aprobar trabajo</button>`:''}</div>`}
+async function aprobar(id){try{await api(`/api/trabajos/${id}/aprobar`,{method:'POST'});toast('Aprobado');cargar();verDet(id)}catch(e){toast(e.message)}}
+async function cargar(){TECS=await api('/api/tecnicos');destOpts();
+const ts=await api('/api/trabajos');cols.innerHTML=Object.keys(ESTADOS).map(s=>`<div class="col"><h4>${ESTADOS[s]} (${ts.filter(t=>t.estado===s).length})</h4>${ts.filter(t=>t.estado===s).map(t=>`<div class="mini" onclick="verDet(${t.id})"><b>#${t.id} ${esc(t.cliente)}</b><br>${t.tipo} · ${money(t.pago)}${t.urgencia==='urgente'?' <span class="tag urgente">URGENTE</span>':''}<br><small>${esc(t.tecnico||'Destino: '+t.destino+' '+(t.destino==='directo'?'':t.destino_valor))}</small></div>`).join('')}</div>`).join('');
+tabTec.innerHTML='<tr><th>Nombre</th><th>Usuario</th><th>Teléfono</th><th>Especialidades</th><th>Zona</th><th>Estado</th><th></th></tr>'+TECS.map(t=>`<tr><td>${esc(t.nombre)}</td><td>${esc(t.usuario)}</td><td>${esc(t.telefono)}</td><td>${t.especialidades.split(',').filter(Boolean).map(e=>`<span class="tag">${e}</span>`).join('')}</td><td>${esc(t.zona)}</td><td>${t.activo?'✅ Activo':'⛔ Suspendido'}</td><td><button class="chico ${t.activo?'peligro':''}" onclick="activar(${t.id},${t.activo?0:1})">${t.activo?'Suspender':'Activar'}</button></td></tr>`).join('');
+const p=await api('/api/pagos');tabPagos.innerHTML='<tr><th>Técnico</th><th>Trabajos aprobados</th><th>Por pagar (aprobado)</th><th>En proceso</th></tr>'+p.map(r=>`<tr><td>${esc(r.nombre)}</td><td>${r.trabajos}</td><td><b>${money(r.aprobado)}</b></td><td>${money(r.pendiente)}</td></tr>`).join('')}
+if(!S.t)location='/';cargar();vivo(()=>cargar());
+</script></body></html>
