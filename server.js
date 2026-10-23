@@ -38,8 +38,8 @@ const auth = (rol) => (req, res, next) => {
   req.user = u; next();
 };
 app.post('/api/login', (req, res) => {
-  const u = db.prepare('SELECT * FROM users WHERE usuario=?').get(req.body.usuario || '');
-  if (!u || !bcrypt.compareSync(req.body.password || '', u.pass)) return res.status(401).json({ error: 'Credenciales incorrectas' });
+  const u = db.prepare('SELECT * FROM users WHERE usuario=?').get(String(req.body.usuario || '').trim().toLowerCase());
+  if (!u || !bcrypt.compareSync(String(req.body.password || '').trim(), u.pass)) return res.status(401).json({ error: 'Credenciales incorrectas' });
   if (!u.activo) return res.status(403).json({ error: 'Cuenta suspendida' });
   const token = crypto.randomBytes(24).toString('hex');
   db.prepare('INSERT INTO sesiones VALUES(?,?)').run(token, u.id);
