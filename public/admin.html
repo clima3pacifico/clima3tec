@@ -29,7 +29,7 @@ async function activar(id,a){await api('/api/tecnicos/'+id,{method:'PATCH',body:
 async function verDet(id){const t=await api('/api/trabajos/'+id);const L=t.lecturas||{};
 detalle.innerHTML=`<div class="card"><h3>#${t.id} ${esc(t.cliente)} <span class="estado">${ESTADOS[t.estado]}</span></h3><p>${esc(t.direccion)} · ${t.tipo} · ${t.fecha} · ${money(t.pago)} · Técnico: ${esc(t.tecnico||'—')}</p>
 <p><b>Checklist:</b> ${t.checklist.map(c=>`<span class="tag">${c.ok?'✅':'⬜'} ${esc(c.txt)}</span>`).join('')||'—'}</p>
-<p><b>Lecturas:</b> Presión ${esc(L.presion||'—')} psi · Amperaje ${esc(L.amperaje||'—')} A · Temp. ${esc(L.temperatura||'—')} °C</p><p><b>Materiales:</b> ${esc(t.materiales||'—')}</p>
+<p><b>Lecturas:</b> Presión ${esc(L.presion||'—')} psi · Amperaje ${esc(L.amperaje||'—')} A · Temp. ${esc(L.temperatura||'—')} °C</p><p><b>Materiales:</b> ${esc(t.materiales||'—')}</p><p><b>Comentarios:</b> ${esc(t.comentarios||'—')}</p>
 <div class="fotos">${t.fotos.map(f=>`<figure style="display:inline-block;margin:0"><img src="/uploads/${f.archivo}"><figcaption style="font-size:12px">${f.tipo}</figcaption></figure>`).join('')}
 ${t.firma?`<figure style="display:inline-block;margin:0"><img src="/uploads/${t.firma}" style="background:#fff;border:1px solid #ddd"><figcaption style="font-size:12px">firma cliente</figcaption></figure>`:''}</div>
 <p><b>Bitácora GPS:</b> ${t.eventos.map(e=>`<span class="tag">${ESTADOS[e.estado]} ${new Date(e.ts.replace(' ','T')+'Z').toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})} ${e.lat?`(${(+e.lat).toFixed(4)}, ${(+e.lng).toFixed(4)})`:''}</span>`).join('')}</p>

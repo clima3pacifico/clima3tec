@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS trabajos(id INTEGER PRIMARY KEY, cliente TEXT, direcc
   checklist TEXT, lecturas TEXT, materiales TEXT, firma TEXT, demo INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS eventos(id INTEGER PRIMARY KEY, trabajo_id INTEGER, estado TEXT, lat REAL, lng REAL, user_id INTEGER, ts TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS fotos(id INTEGER PRIMARY KEY, trabajo_id INTEGER, tipo TEXT, archivo TEXT, ts TEXT DEFAULT CURRENT_TIMESTAMP);`);
+// migración segura: columna comentarios
+if (!db.prepare('PRAGMA table_info(trabajos)').all().some(c => c.name === 'comentarios')) db.exec('ALTER TABLE trabajos ADD COLUMN comentarios TEXT');
 
 // ---- DEMO seed ----
 if (!db.prepare('SELECT 1 FROM users').get()) {
@@ -80,7 +82,7 @@ app.post('/api/trabajos', auth('admin'), (req, res) => {
       destino === 'directo' ? +b.destino_valor : null, destino === 'directo' ? 'aceptado' : 'publicado');
   avisar('nuevo', r.lastInsertRowid); res.json({ id: r.lastInsertRowid });
 });
-const conTodo = (t) => t && ({ ...t, checklist: JSON.parse(t.checklist || '[]'), lecturas: JSON.parse(t.lecturas || '{}'), materiales: t.materiales || '',
+const conTodo = (t) => t && ({ ...t, checklist: JSON.parse(t.checklist || '[]'), lecturas: JSON.parse(t.lecturas || '{}'), materiales: t.materiales || '', comentarios: t.comentarios || '',
   fotos: db.prepare('SELECT * FROM fotos WHERE trabajo_id=?').all(t.id), eventos: db.prepare('SELECT * FROM eventos WHERE trabajo_id=? ORDER BY id').all(t.id) });
 app.get('/api/trabajos', auth('admin'), (req, res) =>
   res.json(db.prepare('SELECT t.*, u.nombre tecnico FROM trabajos t LEFT JOIN users u ON u.id=t.tecnico_id ORDER BY t.id DESC').all()));
@@ -133,6 +135,7 @@ app.post('/api/trabajos/:id/evidencia', auth('tecnico'), (req, res) => {
   if (b.checklist) db.prepare('UPDATE trabajos SET checklist=? WHERE id=?').run(JSON.stringify(b.checklist), t.id);
   if (b.lecturas) db.prepare('UPDATE trabajos SET lecturas=? WHERE id=?').run(JSON.stringify(b.lecturas), t.id);
   if (b.materiales !== undefined) db.prepare('UPDATE trabajos SET materiales=? WHERE id=?').run(b.materiales, t.id);
+  if (b.comentarios !== undefined) db.prepare('UPDATE trabajos SET comentarios=? WHERE id=?').run(String(b.comentarios), t.id);
   if (b.firma) { const f = guardarImg(b.firma, `firma-${t.id}`); if (f) db.prepare('UPDATE trabajos SET firma=? WHERE id=?').run(f, t.id); }
   if (b.foto) { const f = guardarImg(b.foto, `${b.fotoTipo}-${t.id}`); if (f) db.prepare('INSERT INTO fotos(trabajo_id,tipo,archivo) VALUES(?,?,?)').run(t.id, b.fotoTipo === 'antes' ? 'antes' : 'despues', f); }
   avisar('evidencia', t.id); res.json({ ok: true });
