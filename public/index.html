@@ -1,9 +1,10 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Clima 3 Tec</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b2545"><link rel="stylesheet" href="estilos.css"></head>
-<body><header><b>CLIMA 3 <span>TEC</span></b><span class="demo">PROTOTIPO DEMO</span></header>
-<div class="card login"><h2>Iniciar sesión</h2><p style="font-size:13px">Red cerrada: solo técnicos dados de alta por Clima 3 del Pacífico.</p>
-<label>Usuario</label><input id="u" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"><label>Contraseña</label><input id="p" type="password" placeholder="(opcional en demo)">
-<button style="width:100%" onclick="entrar()">Entrar</button><p style="font-size:12px;color:#667">DEMO: admin / tec1 / tec2 / tec3 — sin contraseña</p></div>
+<title>Clima 3 Tec</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b2545"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="estilos.css"></head>
+<body><div class="login-wrap"><div class="card login"><img class="logo-grande" src="logo_clima3.svg" alt="Clima 3"><span class="tec">TEC</span>
+<h2>Iniciar sesión</h2><p style="font-size:13px;text-align:center">Red cerrada: solo técnicos dados de alta por Clima 3 del Pacífico.</p>
+<label>Usuario</label><input id="u" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="tec1"><label>Contraseña</label><input id="p" type="password" placeholder="(opcional en demo)">
+<button style="width:100%" onclick="entrar()">Entrar</button><p style="font-size:12px;text-align:center;margin-bottom:0">DEMO: admin / tec1 / tec2 / tec3 — sin contraseña</p></div>
+<div class="login-pie"><span class="demo">PROTOTIPO DEMO</span> · Clima 3 del Pacífico · Hermosillo</div></div>
 <script src="comun.js"></script><script>
 async function entrar(){try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:u.value.trim().toLowerCase(),password:p.value.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error);
 S.t=j.token;localStorage.c3nom=j.nombre;location=j.rol==='admin'?'/admin.html':'/tecnico.html'}catch(e){toast(e.message);}}

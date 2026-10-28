@@ -1,5 +1,5 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clima 3 Tec · Admin</title><link rel="stylesheet" href="estilos.css"></head>
-<body class="marca"><header><b>CLIMA 3 <span>TEC</span> · Panel Admin <span class="demo">DEMO</span></b><button class="chico sec" onclick="salir()">Salir</button></header><main>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clima 3 Tec · Admin</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="estilos.css"></head>
+<body class="marca"><header><div class="marca-h"><span class="logo-badge"><img src="logo_clima3.svg" alt="Clima 3"></span><span class="tec">TEC</span><span class="sub">Panel Admin</span><span class="demo">DEMO</span></div><button class="salir" onclick="salir()">Salir</button></header><main>
 <nav class="tabs"><button data-t="tablero" class="on">Tablero</button><button data-t="publicar">Publicar trabajo</button><button data-t="tecnicos">Técnicos</button><button data-t="pagos">Pagos</button></nav>
 <section id="tablero"><div class="tablero" id="cols"></div><div id="detalle"></div></section>
 <section id="publicar" hidden><div class="card"><h3>Publicar trabajo</h3><div class="grid g2">
@@ -27,7 +27,7 @@ async function publicar(){try{await api('/api/trabajos',{method:'POST',body:{cli
 async function altaTec(){try{await api('/api/tecnicos',{method:'POST',body:{nombre:t_nombre.value,telefono:t_tel.value,usuario:t_usuario.value,password:t_pass.value,zona:t_zona.value,especialidades:[...t_esp.querySelectorAll('input:checked')].map(i=>i.value)}});toast('Técnico dado de alta');cargar()}catch(e){toast(e.message)}}
 async function activar(id,a){await api('/api/tecnicos/'+id,{method:'PATCH',body:{activo:a}});cargar()}
 async function verDet(id){const t=await api('/api/trabajos/'+id);const L=t.lecturas||{};
-detalle.innerHTML=`<div class="card"><h3>#${t.id} ${esc(t.cliente)} <span class="estado">${ESTADOS[t.estado]}</span></h3><p>${esc(t.direccion)} · ${t.tipo} · ${t.fecha} · ${money(t.pago)} · Técnico: ${esc(t.tecnico||'—')}</p>
+detalle.innerHTML=`<div class="card"><h3>#${t.id} ${esc(t.cliente)} <span class="estado">${ESTADOS[t.estado]}</span></h3><p>${esc(t.direccion)} · ${t.tipo} · ${fecha(t.fecha)} · ${money(t.pago)} · Técnico: ${esc(t.tecnico||'—')}</p>
 <p><b>Checklist:</b> ${t.checklist.map(c=>`<span class="tag">${c.ok?'✅':'⬜'} ${esc(c.txt)}</span>`).join('')||'—'}</p>
 <p><b>Lecturas:</b> Presión ${esc(L.presion||'—')} psi · Amperaje ${esc(L.amperaje||'—')} A · Temp. ${esc(L.temperatura||'—')} °C</p><p><b>Materiales:</b> ${esc(t.materiales||'—')}</p><p><b>Comentarios:</b> ${esc(t.comentarios||'—')}</p>
 <div class="fotos">${t.fotos.map(f=>`<figure style="display:inline-block;margin:0"><img src="/uploads/${f.archivo}"><figcaption style="font-size:12px">${f.tipo}</figcaption></figure>`).join('')}
