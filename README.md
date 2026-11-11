@@ -1,7 +1,34 @@
-# Clima 3 Tec — Prototipo (DEMO)
+# Clima 3 Tec — Sistema de servicios técnicos Carrier (DEMO)
 
-App tipo Uber de **red cerrada** para Clima 3 del Pacífico (Hermosillo): Clima 3 publica trabajos y **solo los técnicos que Clima 3 dio de alta** pueden verlos y tomarlos.
+Aplicación web responsiva (PWA) de **Clima 3 del Pacífico, Centro de Servicio Autorizado Carrier**, para administrar, asignar, ejecutar y documentar tickets de servicio. El flujo principal es el **sistema de tickets Carrier**; la "bolsa de trabajos" anterior sigue disponible en `/bolsa.html` (técnico) y `/admin-bolsa.html` (admin).
 
+## Arranque
+```bash
+npm install
+node server.js        # http://localhost:3000
+npm test              # prueba de punta a punta (python3 + playwright + poppler), levanta su propio servidor en :3200
+```
+- Login: `/` · Coordinación/admin: `/admin.html` · Técnico: `/tecnico.html`
+- BD SQLite `clima3tec.db` (o `DB_FILE`). Fotos y firmas en `uploads/tickets/` (protegidas por sesión), PDFs por versión en `uploads/pdf/`.
+
+## Usuarios DEMO (sin contraseña o `demo123`)
+`admin` (coordinación) · `tec1` Juan Pérez · `tec2` Luis Ramírez · (`tec3` solo en la bolsa anterior)
+
+## Sistema de tickets Carrier
+- **Roles:** administrador/coordinador, técnico (solo ve sus tickets y los que apoya), cliente (firma en el dispositivo del técnico, sin cuenta).
+- **Tickets** con folio único `C3-AAAA-NNNNN`, todos los campos del cliente/equipo, 11 estatus con historial fechado (y GPS en llegada).
+- **3 tipos de proyecto** (instalación básica, validación de garantía, mantenimiento preventivo) que cargan su checklist automáticamente. Checklists y parámetros de operación **configurables por el admin** (BD).
+- **Asistente paso a paso** del técnico: llegada → fotos antes → checklist → fotos durante → parámetros → reporte → fotos después → terminado/suspendido → firma del cliente (con resumen/hoja de conformidad) → enviar a revisión. Guardado automático.
+- **Sin conexión:** service worker + cola IndexedDB (`public/offline.js`) que sincroniza al reconectar.
+- **Firma protegida:** al firmar se guarda la huella SHA-256 del reporte; cualquier cambio posterior crea una nueva versión y queda en la auditoría; los tickets cerrados no admiten cambios.
+- **PDF** (pdfkit, `lib/pdf.js`): reporte Clima 3 (logos Clima 3 y Carrier, checklist, parámetros, galería por etapa, firmas, versión) + **Formato Reporte Electrónico 1.1** para clientes Carrier (`cliente_carrier`), + reporte fotográfico (`?formato=fotos`).
+- **Técnico Carrier autorizado** (bloque TÉCNICO CARRIER del formato 1.1): nombre + imagen del nombre manuscrito + firma, configurables en *Configuración*. Las imágenes **no se guardan en el repositorio (es público)**: se leen de la BD (subidas por el admin), de las variables `CARRIER_TEC_NOMBRE_B64` / `CARRIER_TEC_FIRMA_B64` (PNG en base64) o de la carpeta `privado/` (ignorada por git: `carrier_tec_nombre.png`, `carrier_tec_firma.png`). Si falta la firma, el formato sale con la línea en blanco y el admin ve un aviso.
+- **Panel** con conteos por estatus, técnico, tipo de servicio, cliente, tiempos promedio y filtros; **expediente** por cliente/equipo con búsqueda por número de serie; auditoría; respaldo de BD; colores configurables.
+- Logotipo Carrier: Wikimedia Commons ("Logo of the Carrier Corporation", dominio público) y la versión "turn to the experts" tomada del formato de referencia de Clima 3.
+
+---
+
+## Bolsa de trabajos (versión anterior)
 ## Arranque
 ```bash
 npm install

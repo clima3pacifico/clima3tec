@@ -3,9 +3,10 @@ const express = require('express'), Database = require('better-sqlite3'), bcrypt
 const crypto = require('crypto'), fs = require('fs'), path = require('path');
 const app = express(); app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(['/uploads/tickets', '/uploads/pdf'], (req, res) => res.status(404).end());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
-const db = new Database(path.join(__dirname, 'clima3tec.db')); db.pragma('journal_mode = WAL');
+const db = new Database(process.env.DB_FILE || path.join(__dirname, 'clima3tec.db')); db.pragma('journal_mode = WAL');
 db.exec(`
 CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, usuario TEXT UNIQUE, pass TEXT, rol TEXT, nombre TEXT, telefono TEXT,
   especialidades TEXT DEFAULT '', zona TEXT DEFAULT '', activo INTEGER DEFAULT 1, demo INTEGER DEFAULT 0);
@@ -55,7 +56,7 @@ app.get('/api/eventos', auth(), (req, res) => {
   const c = { res, user: req.user }; clientes.add(c); res.write('data: {"tipo":"hola"}\n\n');
   req.on('close', () => clientes.delete(c));
 });
-const avisar = (tipo, id) => clientes.forEach(c => c.res.write(`data: ${JSON.stringify({ tipo, id })}\n\n`));
+const avisar = (tipo, id, para) => clientes.forEach(c => { if (!para || c.user.rol === 'admin' || para.includes(c.user.id)) c.res.write(`data: ${JSON.stringify({ tipo, id })}\n\n`); });
 
 // ---- admin: técnicos ----
 const pub = (u) => ({ id: u.id, usuario: u.usuario, nombre: u.nombre, telefono: u.telefono, especialidades: u.especialidades, zona: u.zona, activo: u.activo, demo: u.demo });
@@ -152,5 +153,7 @@ app.get('/api/pagos', auth('admin'), (req, res) => res.json(db.prepare(`SELECT u
 app.get('/api/ganancias', auth('tecnico'), (req, res) => res.json(db.prepare(`SELECT
   COALESCE(SUM(CASE WHEN estado='aprobado' THEN pago END),0) aprobado, COALESCE(SUM(CASE WHEN estado IN('aceptado','en_camino','en_sitio','terminado') THEN pago END),0) pendiente,
   COUNT(CASE WHEN estado='aprobado' THEN 1 END) trabajos FROM trabajos WHERE tecnico_id=?`).get(req.user.id)));
+// ---- Sistema de tickets Carrier ----
+require('./lib/carrier')(app, db, { auth, avisar, dir: __dirname });
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Clima 3 Tec en http://localhost:' + PORT));

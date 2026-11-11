@@ -1,41 +1,200 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clima 3 Tec</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Clima 3 Tec · Técnico</title>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b2545"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="estilos.css"></head>
-<body class="marca"><header><div class="marca-h"><span class="logo-badge"><img src="logo_clima3.svg" alt="Clima 3"></span><span class="tec">TEC</span><span class="demo">DEMO</span></div><button class="salir" onclick="salir()">Salir</button></header><main>
-<p id="hola" style="margin:0 0 8px;font-weight:600"></p>
-<nav class="tabs"><button data-t="bolsa" class="on">Bolsa</button><button data-t="mios">Mis trabajos</button><button data-t="ganancias">Ganancias</button></nav>
-<section id="bolsa"></section><section id="mios" hidden></section><section id="ganancias" hidden></section><section id="trabajo" hidden></section></main>
-<script src="comun.js"></script><script>
-hola.textContent='Hola, '+(localStorage.c3nom||'');let ACT=null;
-const tab=t=>{document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==t)};
-document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ACT=null;tab(b.dataset.t);cargar()});
-const gps=()=>new Promise(r=>{if(!navigator.geolocation)return r({});navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r({}),{timeout:5000})});
-async function aceptar(id){try{await api(`/api/trabajos/${id}/aceptar`,{method:'POST',body:await gps()});toast('¡Trabajo aceptado!');abrir(id)}catch(e){toast(e.message);cargar()}}
-async function cargar(){const b=await api('/api/bolsa');
-bolsa.innerHTML=(b.length?'':'<div class="card">No hay trabajos disponibles por ahora.</div>')+b.map(t=>`<div class="card job"><div class="top"><div><div class="cli">${esc(t.cliente)}</div>${t.urgencia==='urgente'?'<span class="tag urgente">URGENTE</span>':''}</div><span class="chip-precio">${money(t.pago)}</span></div>
-<div class="meta"><span>${ICO.equipo}<b style="color:var(--navy);text-transform:capitalize">${esc(t.tipo)}</b></span><span>${ICO.fecha}${fecha(t.fecha)}</span><span>${ICO.ubic}${esc(t.direccion)}</span></div>${t.notas?`<p class="notas">${esc(t.notas)}</p>`:''}<button style="width:100%" onclick="aceptar(${t.id})">Aceptar trabajo</button></div>`).join('');
-const m=await api('/api/mis-trabajos');mios.innerHTML=m.map(t=>`<div class="card job" onclick="abrir(${t.id})" style="cursor:pointer"><div class="top"><div class="cli">#${t.id} ${esc(t.cliente)}</div><span class="estado">${ESTADOS[t.estado]}</span></div><div class="meta" style="margin-bottom:0"><span>${ICO.equipo}<span style="text-transform:capitalize">${esc(t.tipo)}</span></span><span>${ICO.fecha}${fecha(t.fecha)}</span><span>${ICO.dinero}<b style="color:var(--teal)">${money(t.pago)}</b></span></div></div>`).join('')||'<div class="card">Sin trabajos.</div>';
-const g=await api('/api/ganancias');ganancias.innerHTML=`<div class="card"><p>Aprobado (por cobrar)</p><div class="pago">${money(g.aprobado)}</div><p>En proceso</p><div class="pago" style="color:var(--navy)">${money(g.pendiente)}</div><p>${g.trabajos} trabajos aprobados</p></div>`}
-const SIG={aceptado:['en_camino','Voy en camino'],en_camino:['en_sitio','Llegué al sitio'],en_sitio:['terminado','Terminar trabajo']};
-const CHK=['Revisión eléctrica','Limpieza de filtros','Limpieza de serpentín','Revisión de gas / fugas','Prueba de funcionamiento'];
-async function abrir(id){ACT=id;tab('trabajo');const t=await api('/api/trabajos/'+id);const L=t.lecturas;const ch=t.checklist.length?t.checklist:CHK.map(x=>({txt:x,ok:false}));const ed=['aceptado','en_camino','en_sitio'].includes(t.estado);
-trabajo.innerHTML=`<div class="card"><b>#${t.id} ${esc(t.cliente)}</b> <span class="estado">${ESTADOS[t.estado]}</span><div class="meta"><span>${ICO.equipo}<span style="text-transform:capitalize">${esc(t.tipo)}</span></span><span>${ICO.fecha}${fecha(t.fecha)}</span><span>${ICO.ubic}${esc(t.direccion)}</span></div>
-<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><a class="btn-mapa" href="https://maps.google.com/?q=${encodeURIComponent(t.direccion)}" target="_blank">${ICO.ubic} Abrir en mapas</a><span class="chip-precio">${money(t.pago)}</span></div>${t.notas?`<p class="notas" style="margin-top:12px">${esc(t.notas)}</p>`:''}</div>
-<div class="card"><h4>Checklist</h4>${ch.map((c,i)=>`<label style="display:block;font-weight:400"><input type="checkbox" class="chk" data-txt="${esc(c.txt)}" ${c.ok?'checked':''} style="width:auto"> ${esc(c.txt)}</label>`).join('')}</div>
-<div class="card"><h4>Lecturas</h4><div class="grid" style="grid-template-columns:1fr 1fr 1fr"><div><label>Presión psi</label><input id="l_p" value="${esc(L.presion||'')}" inputmode="decimal"></div><div><label>Amperaje A</label><input id="l_a" value="${esc(L.amperaje||'')}" inputmode="decimal"></div><div><label>Temp. °C</label><input id="l_t" value="${esc(L.temperatura||'')}" inputmode="decimal"></div></div>
-<label>Materiales usados</label><textarea id="mat">${esc(t.materiales)}</textarea>
-<label>Comentarios</label><textarea id="com">${esc(t.comentarios||'')}</textarea>${ed?'<button class="sec" onclick="guardar()">Guardar avances</button>':''}</div>
-<div class="card"><h4>Fotos</h4><div class="fotos">${t.fotos.map(f=>`<figure style="display:inline-block;margin:0"><img src="/uploads/${f.archivo}" style="width:100px;height:75px"><figcaption style="font-size:11px">${f.tipo}</figcaption></figure>`).join('')||'Sin fotos'}</div>
-${ed?`<label>Foto ANTES</label><input type="file" accept="image/*" capture="environment" onchange="foto(this,'antes')"><label>Foto DESPUÉS</label><input type="file" accept="image/*" capture="environment" onchange="foto(this,'despues')">`:''}</div>
-<div class="card"><h4>Firma del cliente</h4>${t.firma?`<img src="/uploads/${t.firma}" style="width:100%;border:1px solid #ddd;border-radius:8px">`:ed?'<canvas id="firma"></canvas><button class="chico sec" onclick="limpiar()">Borrar</button> <button class="chico" onclick="guardarFirma()">Guardar firma</button>':''}</div>
-${SIG[t.estado]?`<div class="bar"><button onclick="estado('${SIG[t.estado][0]}')">${SIG[t.estado][1]}</button></div>`:''}`;if($('#firma'))initFirma()}
-let cx,dib=false;function initFirma(){const c=$('#firma');c.width=c.offsetWidth;c.height=180;cx=c.getContext('2d');cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#0b2545';
-const pt=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};c.onpointerdown=e=>{dib=true;cx.beginPath();cx.moveTo(...pt(e))};c.onpointermove=e=>{if(dib){cx.lineTo(...pt(e));cx.stroke()}};c.onpointerup=c.onpointerleave=()=>dib=false}
-function limpiar(){cx.clearRect(0,0,9999,9999)}
-async function guardarFirma(){await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{firma:$('#firma').toDataURL('image/png')}});toast('Firma guardada');abrir(ACT)}
-async function guardar(){await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{checklist:[...document.querySelectorAll('.chk')].map(c=>({txt:c.dataset.txt,ok:c.checked})),lecturas:{presion:l_p.value,amperaje:l_a.value,temperatura:l_t.value},materiales:mat.value,comentarios:com.value}});toast('Guardado')}
-function foto(inp,tipo){const f=inp.files[0];if(!f)return;const img=new Image();img.onload=async()=>{const c=document.createElement('canvas'),s=Math.min(1,1280/img.width);c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-await api(`/api/trabajos/${ACT}/evidencia`,{method:'POST',body:{foto:c.toDataURL('image/jpeg',.8),fotoTipo:tipo}});toast('Foto subida');abrir(ACT)};img.src=URL.createObjectURL(f)}
-async function estado(e){try{if(document.querySelector('.chk'))await guardar();await api(`/api/trabajos/${ACT}/estado`,{method:'POST',body:{estado:e,...await gps()}});toast(ESTADOS[e]);abrir(ACT)}catch(x){toast(x.message)}}
-if(!S.t)location='/';cargar();vivo(d=>{if(!ACT)cargar();if(d.tipo==='nuevo')toast('🔔 Nuevo trabajo disponible')});
+<body class="marca"><header><div class="marca-h"><span class="logo-badge"><img src="logo_clima3.svg" alt="Clima 3"></span><span class="tec">TEC</span><span class="sub">Servicio Carrier</span><span class="demo">DEMO</span></div><button class="salir" onclick="salir()">Salir</button></header>
+<div id="redbar" class="offline-bar" hidden></div>
+<main id="app"></main>
+<script src="comun.js"></script><script src="offline.js"></script><script>
+if(!S.t)location='/';
+const IC=d=>`<svg class="ic" viewBox="0 0 24 24">${d}</svg>`;
+const ICONOS={tickets:IC('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v3h6V3M9 11h6M9 15h4"/>'),pend:IC('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),proc:IC('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>'),term:IC('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>'),hist:IC('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>')};
+const GRUPOS={todos:{t:'MIS TICKETS',s:'Servicios asignados',i:'tickets',e:['nuevo','asignado','aceptado','traslado','en_sitio','ejecucion','suspendido','pend_autorizacion','terminado','revision']},
+ pend:{t:'SERVICIOS PENDIENTES',s:'Por iniciar',i:'pend',e:['nuevo','asignado','aceptado']},proc:{t:'SERVICIOS EN PROCESO',s:'En traslado, en sitio o en ejecución',i:'proc',e:['traslado','en_sitio','ejecucion','pend_autorizacion']},
+ term:{t:'SERVICIOS TERMINADOS',s:'Terminados, suspendidos y en revisión',i:'term',e:['terminado','suspendido','revision']},hist:{t:'HISTORIAL',s:'Servicios cerrados',i:'hist',e:['cerrado']}};
+let CAT=null,LISTA=[],GRUPO='todos',T=null,PASO=0,PAD_C=null,PAD_T=null,MODO='inicio';
+const PASOS=[['llegada','Llegada al sitio'],['antes','Fotos del antes'],['checklist','Checklist'],['durante','Fotos del durante'],['parametros','Parámetros de operación'],['reporte','Reporte del servicio'],['despues','Fotos del después'],['resultado','Resultado'],['firma','Firma del cliente'],['enviar','Enviar a revisión']];
+const GUIAS={antes:['Estado inicial del equipo','Fotografías de la instalación','Condiciones del área','Daños o anomalías detectadas'],durante:['Actividades realizadas','Componentes intervenidos','Limpieza, conexiones y reparaciones','Mediciones o pruebas realizadas'],despues:['Equipo terminado','Instalación final','Área de trabajo limpia','Equipo funcionando']};
+const editable=()=>T&&!['revision','cerrado'].includes(T.estado);
+const gps=()=>new Promise(r=>{if(!navigator.geolocation)return r({});navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r({}),{timeout:6000})});
+
+// ---------- barra de conexión / sincronización ----------
+document.addEventListener('cola',e=>{const {n,online}=e.detail,b=$('#redbar');if(!online){b.hidden=false;b.className='offline-bar';b.textContent=`Sin conexión · trabajando sin internet${n?` · ${n} cambio(s) por sincronizar`:''}`}
+ else if(n){b.hidden=false;b.className='offline-bar';b.textContent=`Sincronizando ${n} cambio(s)…`}else b.hidden=true});
+document.addEventListener('sincronizado',e=>{const b=$('#redbar');b.hidden=false;b.className='offline-bar ok';b.textContent=`✓ ${e.detail} cambio(s) sincronizado(s) con la oficina`;setTimeout(()=>{b.hidden=true},3500);if(T)recargarTicket(true);else inicio()});
+
+// ---------- inicio ----------
+async function inicio(){T=null;MODO='inicio';history.replaceState(null,'','#');
+ try{CAT=CAT||await OFF.leer('/api/catalogos');LISTA=await OFF.leer('/api/tickets');if(MODO!=='inicio')return}catch(e){$('#app').innerHTML=`<div class="card">${esc(e.message)}</div>`;return}
+ const cuenta=g=>LISTA.filter(t=>GRUPOS[g].e.includes(t.estado)).length;
+ const card=(g,ancho)=>`<div class="icard ${GRUPO===g?'on':''} ${ancho?'ancho':''}" onclick="GRUPO='${g}';inicio()">${ICONOS[GRUPOS[g].i]}<div><b>${GRUPOS[g].t}</b><small>${GRUPOS[g].s}</small></div><span class="num">${cuenta(g)}</span></div>`;
+ const lista=LISTA.filter(t=>GRUPOS[GRUPO].e.includes(t.estado));
+ $('#app').innerHTML=`<p id="hola">Hola, ${esc(localStorage.c3nom||'')}</p>
+ <div class="inicio-cards">${card('todos',1)}${card('pend')}${card('proc')}${card('term')}${card('hist')}</div>
+ <h3 style="margin:6px 2px 10px">${GRUPOS[GRUPO].t} <small style="color:var(--muted);font-weight:600">(${lista.length})</small></h3>
+ ${lista.map(tarjeta).join('')||'<div class="card">No hay tickets en esta sección.</div>'}
+ <p style="text-align:center;font-size:13px;margin-top:18px"><a href="bolsa.html" style="color:var(--muted)">Bolsa de trabajos (versión anterior) →</a></p>`}
+function tarjeta(t){const ini=['nuevo','asignado','aceptado'].includes(t.estado),fin=['revision','cerrado'].includes(t.estado);
+ return `<div class="card tk job"><div class="top"><span class="folio">#${esc(t.folio)}</span>${chipEstado(t.estado,t.estado_txt)}</div>
+ <div class="cli">${esc(t.cliente_nombre)} ${t.cliente_carrier?'<span class="badge-carrier">CARRIER</span>':''}</div>
+ <div class="meta"><span>${ICO.ubic}${esc([t.direccion,t.ciudad].filter(Boolean).join(', '))}</span><span>${ICO.equipo}<b style="color:var(--navy)">${esc(t.tipo_proyecto_txt)}</b></span>
+ <span>${ICO.equipo}${esc([t.modelo,t.serie].filter(Boolean).join(' · ')||'Equipo sin registrar')}</span><span>${ICO.fecha}${fechaL(t.fecha_programada)}</span>
+ <span style="font-size:13px">Checklist ${t.chk_hechas}/${t.chk_total} · ${t.fotos} foto(s)</span></div>
+ <button class="btn-grande" onclick="iniciar(${t.id})">${ini?'INICIAR SERVICIO':fin?'VER REPORTE':'CONTINUAR SERVICIO'}</button></div>`}
+
+// ---------- ticket ----------
+async function cargarTicket(id){T=await OFF.leer('/api/tickets/'+id);T.parametros=T.parametros||{};T.parametros.valores=T.parametros.valores||{};T.parametros.extra=T.parametros.extra||[];return T}
+async function recargarTicket(sil){if(!T)return;if(PASOS[PASO][0]==='firma'&&PAD_C&&!PAD_C.vacio())return;const id=T.id;try{await cargarTicket(id);if(!sil||!document.activeElement||!document.activeElement.matches('input,textarea'))pintar()}catch(e){}}
+const cachear=()=>T&&OFF.put('/api/tickets/'+T.id,T).catch(()=>{});
+async function cambiarEstado(e,extra={}){const r=await OFF.enviar(`/api/tickets/${T.id}/estado`,'POST',{estado:e,...extra});T.estado=e;T.estado_txt=CAT.ESTADOS[e];
+ T.historial.push({estado:e,ts:new Date().toISOString(),usuario:localStorage.c3nom,local:!!r.encolado});if(e==='en_sitio')T.llegada_ts=new Date().toISOString();cachear();return r}
+async function iniciar(id){MODO='ticket';try{await cargarTicket(id);
+ if(T.estado==='asignado'||T.estado==='nuevo'){await cambiarEstado('aceptado');toast('Ticket aceptado')}
+ if(T.estado==='aceptado'){await cambiarEstado('traslado',await gps())}
+ PASO=pasoInicial();pintar()}catch(e){toast(e.message)}}
+function pasoInicial(){if(['revision','cerrado'].includes(T.estado))return 9;if(['traslado','aceptado','asignado'].includes(T.estado))return 0;
+ const g=+localStorage['c3paso_'+T.id];if(g>0&&g<9&&T.estado==='ejecucion')return g; // retoma el último paso
+
+ if(T.estado==='pend_autorizacion')return 8;if(['terminado','suspendido'].includes(T.estado))return T.firma_cliente?9:8;return 1}
+function pintar(){history.replaceState(null,'','#t'+T.id);localStorage['c3paso_'+T.id]=PASO;const [k,tit]=PASOS[PASO];
+ $('#app').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="chico sec" onclick="inicio()">← Mis tickets</button>${chipEstado(T.estado,T.estado_txt)}</div>
+ <div class="card" style="margin:10px 0;padding:12px 14px"><div class="folio" style="font-weight:800;color:var(--navy)">#${esc(T.folio)} · ${esc(T.cliente_nombre)} ${T.cliente_carrier?'<span class="badge-carrier">CARRIER</span>':''}</div>
+ <small style="color:var(--muted)">${esc(T.tipo_proyecto_txt)} · ${esc([T.modelo,T.serie].filter(Boolean).join(' · '))}</small></div>
+ <div class="pasos">${PASOS.map((p,i)=>`<i class="${i<PASO?'ok':i===PASO?'act':''}" title="${p[1]}"></i>`).join('')}</div>
+ <div class="paso-tit"><h3>${tit}</h3><small>Paso ${PASO+1} de ${PASOS.length}</small></div>
+ ${!editable()?'<div class="aviso verde">Este servicio ya fue enviado a revisión. El reporte está protegido; solo lectura.</div>':''}
+ ${T.firma_hash&&!T.firma_vigente&&editable()?`<div class="aviso rojo">El reporte cambió después de la firma del cliente (v${T.version}). El cambio quedó registrado; pide una nueva firma antes de enviar.</div>`:''}
+ <div id="paso">${VISTA[k]()}</div><div class="autosave" id="as"></div>
+ <div class="wbar ${k==='firma'?'estatica':''}">${PASO>0?'<button class="sec" onclick="mover(-1)">← Atrás</button>':''}${PASO<PASOS.length-1?`<button onclick="mover(1)">${PASO===0&&!T.llegada_ts?'Siguiente':'Siguiente →'}</button>`:''}</div>`;
+ if(k==='firma'&&editable()){if($('#padC'))PAD_C=PadFirma($('#padC'));if($('#padT'))PAD_T=PadFirma($('#padT'))}
+ if(k==='reporte'||k==='parametros')autosaveBind();scrollTo(0,0)}
+async function mover(d){const k=PASOS[PASO][0];
+ if(d>0&&k==='llegada'&&editable()){if(!T.llegada_ts)return toast('Primero registra tu llegada al sitio');if(T.estado==='en_sitio')await cambiarEstado('ejecucion')}
+ if(d>0&&k==='resultado'&&editable()&&!T.resultado)return toast('Selecciona trabajo terminado o suspendido');
+ if(d>0&&k==='firma'&&!T.firma_cliente)return toast('Falta la firma del cliente');
+ await guardarPendiente();PASO=Math.max(0,Math.min(PASOS.length-1,PASO+d));pintar()}
+
+// ---------- vistas de cada paso ----------
+const dato=(l,v)=>`<dt>${l}</dt><dd>${esc(v)||'—'}</dd>`;
+const VISTA={
+ llegada:()=>`<div class="card hoja"><dl>${dato('Cliente',T.cliente_nombre)}${dato('Contacto',[T.contacto,T.telefono].filter(Boolean).join(' · '))}${dato('Dirección',[T.direccion,T.ciudad,T.estado_geo,T.cp].filter(Boolean).join(', '))}
+  ${dato('Tienda departamental',T.tienda)}<div class="g">${dato('Modelo',T.modelo)}${dato('N° de serie',T.serie)}${dato('Modelo condensadora',T.modelo_cond)}${dato('Serie condensadora',T.serie_cond)}</div>
+  ${dato('Fecha programada',fechaL(T.fecha_programada))}${dato('Tipo de servicio',T.tipo_servicio_txt+(T.tipo_servicio==='otro'?': '+T.tipo_servicio_otro:''))}${dato('Observaciones iniciales',T.obs_iniciales)}</dl>
+  <a class="btn-mapa" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([T.direccion,T.ciudad,T.estado_geo].join(', '))}">${ICO.ubic} Abrir en mapas</a> ${T.telefono?`<a class="btn-mapa" href="tel:${esc(T.telefono)}">📞 Llamar</a>`:''}</div>
+  ${T.llegada_ts?`<div class="aviso verde">✓ Llegada registrada: <b>${fechaL(T.llegada_ts)}</b></div>`:editable()?'<button class="btn-grande" onclick="llegada()">📍 REGISTRAR LLEGADA AL SITIO</button>':''}`,
+ antes:()=>vistaFotos('antes'),durante:()=>vistaFotos('durante'),despues:()=>vistaFotos('despues'),
+ checklist:()=>{const h=T.checklist.filter(c=>c.estado==='realizado').length;return `<div class="guia"><b>${esc(T.tipo_proyecto_txt)}</b> · ${h} de ${T.checklist.length} realizadas. Marca cada actividad y agrega observaciones si hace falta.</div>`+
+  T.checklist.map((c,i)=>`<div class="chk-item" data-id="${c.id}"><p><span class="n">${i+1}.</span>${esc(c.actividad)}</p><div class="seg">${Object.entries(CAT.CHECK_ESTADOS).map(([k,v])=>`<button class="${k} ${c.estado===k?'on':''}" ${editable()?'':'disabled'} onclick="marcar(${c.id},'${k}')">${v}</button>`).join('')}</div>
+  <input placeholder="Observación (opcional)" value="${esc(c.observacion)}" ${editable()?'':'disabled'} oninput="obsChk(${c.id},this.value)"></div>`).join('')},
+ parametros:()=>`<div class="guia">Captura solo los parámetros que apliquen al equipo y al servicio. Ninguno es obligatorio.</div><div class="card">
+  ${CAT.parametros.map(p=>`<label>${esc(p.nombre)}${p.unidad?` (${esc(p.unidad)})`:''}</label><input data-par="${p.id}" ${/Condiciones|Observaciones/.test(p.nombre)?'':'inputmode="decimal"'} value="${esc(T.parametros.valores[p.id])}" ${editable()?'':'disabled'}>`).join('')}
+  <h4 style="margin-top:6px">Otros parámetros</h4><div id="extras">${T.parametros.extra.map((e,i)=>`<div class="grid g2" style="gap:8px"><input data-exn="${i}" placeholder="Parámetro" value="${esc(e.nombre)}" ${editable()?'':'disabled'}><input data-exv="${i}" placeholder="Valor" value="${esc(e.valor)}" ${editable()?'':'disabled'}></div>`).join('')}</div>
+  ${editable()?'<button class="chico sec" onclick="T.parametros.extra.push({nombre:\'\',valor:\'\'});pintar()">+ Agregar parámetro</button>':''}</div>`,
+ reporte:()=>{const ops=T.cliente_carrier?[['evaluacion','Evaluación'],['instalacion','Instalación'],['correctivo','Correctivo'],['garantia','Garantía'],['otro','Otro']]:[['garantia','Validación de Garantía'],['instalacion','Instalación'],['correctivo','Reparación'],['preventivo','Mantenimiento preventivo'],['otro','Otro']];
+  const dis=editable()?'':'disabled';return `${T.cliente_carrier?'<div class="guia">Cliente Carrier: los campos siguen el orden del <b>Formato Reporte Electrónico 1.1</b>.</div>':''}<div class="card">
+  <label>Tipo de servicio</label><div class="opciones">${ops.map(([k,v])=>`<label class="op"><input type="radio" name="ts" value="${k}" ${T.tipo_servicio===k||(k==='otro'&&T.tipo_servicio==='preventivo'&&T.cliente_carrier)?'checked':''} ${dis} onchange="T.tipo_servicio=this.value;autoguardar();pintar()">${v}</label>`).join('')}</div>
+  ${T.tipo_servicio==='otro'||(T.cliente_carrier&&T.tipo_servicio==='preventivo')?`<label>Otro (describe)</label><input data-campo="tipo_servicio_otro" value="${esc(T.tipo_servicio_otro||(T.tipo_servicio==='preventivo'?'Mantenimiento preventivo':''))}" ${dis}>`:''}
+  <label>Descripción de los trabajos realizados *</label><textarea data-campo="descripcion" rows="5" ${dis}>${esc(T.descripcion)}</textarea>
+  ${T.cliente_carrier?`<div class="guia" style="margin:-4px 0 12px">Parámetros de operación: se toman del paso 5 (${Object.values(T.parametros.valores).filter(Boolean).length} capturado(s)).</div>`:''}
+  <label>Estado en que se deja el equipo</label><textarea data-campo="estado_equipo" rows="3" ${dis}>${esc(T.estado_equipo)}</textarea>
+  <label>Recomendaciones</label><textarea data-campo="recomendaciones" rows="3" ${dis}>${esc(T.recomendaciones)}</textarea>
+  <label>Anexos</label><input data-campo="anexos" placeholder="Ej. reporte fotográfico, hoja de mediciones" value="${esc(T.anexos)}" ${dis}>
+  <label>Materiales usados</label><textarea data-campo="materiales" rows="2" ${dis}>${esc(T.materiales)}</textarea>
+  <label>Comentarios del técnico</label><textarea data-campo="comentarios" rows="2" ${dis}>${esc(T.comentarios)}</textarea></div>`},
+ resultado:()=>`<div class="guia">Indica cómo queda el servicio. Después se pide la firma del cliente.</div><div class="opciones resultado-op">
+  <label class="op"><input type="radio" name="res" value="terminado" ${T.resultado==='terminado'?'checked':''} ${editable()?'':'disabled'} onchange="resultado(this.value)"><span style="font-size:30px">✅</span>TRABAJO TERMINADO</label>
+  <label class="op"><input type="radio" name="res" value="suspendido" ${T.resultado==='suspendido'?'checked':''} ${editable()?'':'disabled'} onchange="resultado(this.value)"><span style="font-size:30px">⏸️</span>TRABAJO SUSPENDIDO</label></div>
+  ${T.resultado==='suspendido'?'<div class="aviso">Explica el motivo de la suspensión en la descripción o en recomendaciones (paso 6).</div>':''}`,
+ firma:()=>vistaFirma(),
+ enviar:()=>{const env=['revision','cerrado'].includes(T.estado);return `<div class="card"><h4>Reporte PDF</h4><p style="font-size:13.5px;color:var(--muted);margin-top:0">Se genera automáticamente con logotipos de Clima 3 y Carrier, checklist, parámetros, fotos y firmas.</p>
+  <div class="acciones"><a class="boton" target="_blank" href="${pdfUrl(T.id)}">📄 Ver PDF</a><a class="boton t" href="${pdfUrl(T.id,'',1)}">⬇️ Descargar</a>${T.cliente_carrier?`<a class="boton" target="_blank" href="${pdfUrl(T.id,'carrier')}">Formato Carrier</a>`:''}<a class="boton" target="_blank" href="${pdfUrl(T.id,'fotos')}">📷 Reporte fotográfico</a><button class="sec" onclick="compartir()">Compartir / correo</button></div></div>
+  ${env?`<div class="aviso verde">✓ Enviado a revisión administrativa${T.estado==='cerrado'?' y cerrado por la oficina':''}.</div>`:`<div class="card"><h4>Revisión final</h4><ul style="font-size:14px;padding-left:18px;margin:0 0 10px">${requisitos().map(([ok,t])=>`<li style="color:${ok?'#0f7a4f':'#b42318'}">${ok?'✓':'✗'} ${t}</li>`).join('')}</ul>
+  <button class="btn-grande" onclick="enviarRevision()">ENVIAR A REVISIÓN</button></div>`}`}};
+function requisitos(){const et=e=>T.fotos.some(f=>f.etapa===e),susp=T.resultado==='suspendido';
+ return [[!!T.llegada_ts,'Llegada registrada'],[et('antes'),'Fotos del antes'],[susp||et('durante'),'Fotos del durante'],[susp||et('despues'),'Fotos del después'],[!!T.descripcion,'Descripción de los trabajos'],[!!T.resultado,'Resultado (terminado / suspendido)'],[!!T.firma_tecnico,'Firma del técnico'],[!!T.firma_cliente&&(T.firma_vigente!==false||!T.firma_hash),'Firma del cliente vigente']]}
+async function llegada(){try{await cambiarEstado('en_sitio',await gps());toast('Llegada registrada');pintar()}catch(e){toast(e.message)}}
+
+// ---------- checklist ----------
+let tChk=null;function marcar(id,e){const c=T.checklist.find(x=>x.id===id);c.estado=e;document.querySelectorAll(`.chk-item[data-id="${id}"] .seg button`).forEach(b=>b.classList.toggle('on',b.classList.contains(e)));guardarChk()}
+function obsChk(id,v){T.checklist.find(x=>x.id===id).observacion=v;guardarChk()}
+function guardarChk(){cachear();estadoAS('Guardando…');clearTimeout(tChk);tChk=setTimeout(async()=>{tChk=null;try{const r=await OFF.enviar(`/api/tickets/${T.id}/checklist`,'PUT',{items:T.checklist.map(c=>({id:c.id,estado:c.estado,observacion:c.observacion}))});estadoAS(r.encolado?'Guardado en el teléfono (sin conexión)':'✓ Guardado automáticamente')}catch(e){toast(e.message)}},700)}
+
+// ---------- autoguardado de formularios ----------
+let tAS=null;const estadoAS=t=>{const a=$('#as');if(a)a.textContent=t};
+function autosaveBind(){document.querySelectorAll('[data-campo],[data-par],[data-exn],[data-exv]').forEach(el=>el.oninput=()=>{
+ if(el.dataset.campo)T[el.dataset.campo]=el.value;if(el.dataset.par)T.parametros.valores[el.dataset.par]=el.value;if(el.dataset.exn)T.parametros.extra[el.dataset.exn].nombre=el.value;if(el.dataset.exv)T.parametros.extra[el.dataset.exv].valor=el.value;autoguardar()})}
+function autoguardar(){cachear();estadoAS('Guardando…');clearTimeout(tAS);tAS=setTimeout(guardarCampos,800)}
+async function guardarCampos(){clearTimeout(tAS);tAS=null;if(!editable())return;const b={};['tipo_servicio','tipo_servicio_otro','descripcion','estado_equipo','recomendaciones','anexos','materiales','comentarios','resultado'].forEach(k=>b[k]=T[k]??'');b.parametros=T.parametros;
+ try{const r=await OFF.enviar(`/api/tickets/${T.id}`,'PATCH',b);estadoAS(r.encolado?'Guardado en el teléfono (sin conexión)':'✓ Guardado automáticamente')}catch(e){toast(e.message)}}
+async function guardarPendiente(){if(tAS)await guardarCampos();if(tChk){clearTimeout(tChk);tChk=null;await OFF.enviar(`/api/tickets/${T.id}/checklist`,'PUT',{items:T.checklist.map(c=>({id:c.id,estado:c.estado,observacion:c.observacion}))})}}
+
+// ---------- fotos ----------
+let PREV=[];
+function vistaFotos(et){const fs=T.fotos.filter(f=>f.etapa===et);
+ return `<div class="guia"><b>${CAT.ETAPAS[et]}</b><ul>${GUIAS[et].map(g=>`<li>${g}</li>`).join('')}</ul></div>
+ ${editable()?`<div class="btns-foto"><label>📷 Tomar foto<input type="file" accept="image/*" capture="environment" onchange="elegirFotos(this,'${et}')"></label><label class="gal">🖼️ Galería<input type="file" accept="image/*" multiple onchange="elegirFotos(this,'${et}')"></label></div>`:''}
+ <div class="fotos-grid">${fs.map(f=>`<div class="foto">${f.pendiente?'<span class="pend">POR SINCRONIZAR</span>':''}<img src="${imgUrl(T.id,f.archivo)}" onclick="ver(this.src)" alt="">
+ ${editable()&&!f.pendiente?`<button class="x" onclick="borrarFoto(${f.id})">✕</button>`:''}<div class="pie">${editable()&&!f.pendiente?`<input value="${esc(f.descripcion)}" placeholder="Descripción" onchange="descFoto(${f.id},this.value)">`:`<b>${esc(f.descripcion)||'Sin descripción'}</b><br>`}<small>${fechaL(f.ts_captura)}</small></div></div>`).join('')||'<div class="card" style="grid-column:1/-1">Aún no hay fotos en esta etapa.</div>'}</div>`}
+async function elegirFotos(inp,et){const files=[...inp.files];inp.value='';if(!files.length)return;toast('Preparando fotos…');
+ for(const f of files){try{PREV.push({etapa:et,img:await comprimir(f),ts:new Date(f.lastModified||Date.now()).toISOString(),desc:''})}catch(e){toast(e.message)}}vistaPrevia()}
+function vistaPrevia(){document.querySelector('.modal')?.remove();if(!PREV.length)return;const m=document.createElement('div');m.className='modal';
+ m.innerHTML=`<div><h3>Revisar antes de enviar (${PREV.length})</h3><p style="font-size:13px;color:var(--muted);margin-top:0">Agrega una descripción a cada foto.</p>
+ ${PREV.map((p,i)=>`<div class="foto" style="margin-bottom:10px"><img src="${p.img}" style="height:200px;object-fit:contain;background:#f1f5f9"><button class="x" onclick="PREV.splice(${i},1);vistaPrevia()">✕</button>
+ <div class="pie"><input placeholder="Descripción de la foto" value="${esc(p.desc)}" oninput="PREV[${i}].desc=this.value"><small>${fechaL(p.ts)} · ${CAT.ETAPAS[p.etapa]}</small></div></div>`).join('')}
+ <div class="wbar" style="background:#fff"><button class="sec" onclick="PREV=[];vistaPrevia()">Cancelar</button><button id="subir" onclick="subirFotos()">Subir ${PREV.length} foto(s)</button></div></div>`;document.body.append(m)}
+async function subirFotos(){const b=$('#subir');b.disabled=true;b.textContent='Subiendo…';
+ for(const p of PREV.splice(0)){const cid=uid();const r=await OFF.enviar(`/api/tickets/${T.id}/fotos`,'POST',{cid,etapa:p.etapa,imagen:p.img,descripcion:p.desc,ts_captura:p.ts});
+  T.fotos.push(r.encolado?{id:cid,etapa:p.etapa,archivo:p.img,descripcion:p.desc,ts_captura:p.ts,pendiente:true}:{id:r.id,etapa:p.etapa,archivo:r.archivo,descripcion:p.desc,ts_captura:p.ts})}
+ cachear();vistaPrevia();toast('Fotos guardadas');pintar()}
+async function borrarFoto(id){if(!confirm('¿Eliminar esta foto?'))return;try{await OFF.enviar(`/api/tickets/${T.id}/fotos/${id}`,'DELETE');T.fotos=T.fotos.filter(f=>f.id!==id);cachear();pintar()}catch(e){toast(e.message)}}
+async function descFoto(id,v){try{await OFF.enviar(`/api/tickets/${T.id}/fotos/${id}`,'PATCH',{descripcion:v});T.fotos.find(f=>f.id===id).descripcion=v;cachear();estadoAS('✓ Descripción guardada')}catch(e){toast(e.message)}}
+function ver(src){const v=document.createElement('div');v.className='visor';v.innerHTML=`<img src="${src}">`;v.onclick=()=>v.remove();document.body.append(v)}
+
+// ---------- resultado ----------
+async function resultado(v,sinPintar){T.resultado=v;await guardarCampos();if(T.estado==='ejecucion'||T.estado==='en_sitio'){if(T.estado==='en_sitio')await cambiarEstado('ejecucion');await cambiarEstado('pend_autorizacion')}if(!sinPintar&&PASOS[PASO][0]==='resultado')pintar()}
+
+// ---------- firma ----------
+function hojaConformidad(){const p=Object.entries(T.parametros.valores).filter(([,v])=>v).map(([id,v])=>{const d=CAT.parametros.find(x=>x.id==id);return d?`${d.nombre}: ${v}${d.unidad&&/^[\d.,\s-]+$/.test(v)?' '+d.unidad:''}`:''}).concat(T.parametros.extra.filter(e=>e.nombre&&e.valor).map(e=>`${e.nombre}: ${e.valor}`)).filter(Boolean).join(' · ');
+ const h=T.checklist.filter(c=>c.estado==='realizado').length,at=T.checklist.filter(c=>['atencion','pospuesto'].includes(c.estado));
+ const ts=T.tipo_servicio==='otro'?'Otro: '+(T.tipo_servicio_otro||''):T.tipo_servicio_txt||CAT.TIPOS_SERV[T.tipo_servicio];
+ const enc=T.cliente_carrier? // orden del Formato Reporte Electrónico 1.1 (Carrier)
+  `${dato('#Ticket',T.folio)}${dato('Nombre del cliente',T.cliente_nombre)}<div class="g">${dato('Modelo del equipo',T.modelo)}${dato('N° de serie',T.serie)}</div>${dato('Fecha de ticket de compra',fechaL(T.fecha_compra,false))}${dato('Dirección',T.direccion)}${dato('Tienda departamental',T.tienda)}
+   <div class="g">${dato('Ciudad',T.ciudad)}${dato('Estado',T.estado_geo)}${dato('C.P.',T.cp)}${dato('Número de folio facturación Carrier',T.folio_factura)}${dato('Centro de servicio',T.centro_servicio||'Clima 3')}${dato('Fecha del servicio',fechaL(T.llegada_ts||T.fecha_programada,false))}</div>${dato('Tipo de servicio',ts)}`
+  :`${dato('Número de ticket',T.folio)}${dato('Nombre del cliente',T.cliente_nombre)}<div class="g">${dato('Modelo del equipo',T.modelo)}${dato('Número de serie',T.serie)}</div>${dato('Fecha del ticket de compra',fechaL(T.fecha_compra,false))}${dato('Dirección',[T.direccion,T.ciudad,T.estado_geo,T.cp].filter(Boolean).join(', '))}${dato('Tienda departamental',T.tienda)}${dato('Centro de Servicio Carrier','Clima 3')}${dato('Fecha del servicio',fechaL(T.llegada_ts||T.fecha_programada,false))}${dato('Tipo de servicio',ts)}`;
+ return `<div class="card hoja"><h4>Hoja de conformidad ${T.cliente_carrier?'· Formato Carrier 1.1':''}</h4><dl>${enc}
+ ${dato('Descripción de los trabajos',T.descripcion)}${dato('Parámetros de operación',p)}${dato('Estado en que se deja el equipo',T.estado_equipo)}${dato('Recomendaciones',T.recomendaciones)}
+ ${dato('Resultado',T.resultado==='terminado'?'Trabajo terminado':T.resultado==='suspendido'?'Trabajo suspendido':'')}${dato('Anexos',T.anexos||(T.fotos.length?T.fotos.length+' fotografías':''))}
+ ${dato('Checklist',`${h} de ${T.checklist.length} actividades realizadas${at.length?' · Pendientes de atención: '+at.map(c=>c.actividad).join('; '):''}`)}${dato('Técnico',T.tecnico)}</dl></div>`}
+function vistaFirma(){if(!editable()||(T.firma_cliente&&T.firma_vigente!==false&&!T.__refirmar))return hojaConformidad()+`<div class="card"><h4>Autorización del cliente</h4>${T.firma_cliente?`<img src="${imgUrl(T.id,T.firma_cliente)}" style="max-width:100%;height:110px;object-fit:contain;display:block;margin:auto">
+ <p style="text-align:center;margin:4px 0"><b>${esc(T.cliente_firma_nombre)}</b>${T.cliente_firma_cargo?' · '+esc(T.cliente_firma_cargo):''}<br><small>${fechaL(T.cliente_firma_ts)} · versión v${T.firma_version||T.version}</small></p>`:'Sin firma'}
+ ${editable()?'<button class="chico sec" onclick="T.__refirmar=1;pintar()">Volver a firmar</button>':''}</div>`;
+ return hojaConformidad()+`<div class="card"><h4>Comentarios del cliente</h4><textarea id="fc_com" rows="3" placeholder="Comentarios del cliente (opcional)">${esc(T.comentarios_cliente)}</textarea>
+ <h4>Autorización del cliente</h4><label>Nombre completo de quien autoriza *</label><input id="fc_nom" value="${esc(T.cliente_firma_nombre||T.contacto||'')}"><label>Cargo (si aplica)</label><input id="fc_car" value="${esc(T.cliente_firma_cargo)}">
+ <label>Firma del cliente *</label><canvas class="pad" id="padC"></canvas><button class="chico sec" onclick="PAD_C.limpiar()" style="margin-top:6px">Borrar firma</button>
+ <p style="font-size:12px;color:var(--muted)">Fecha y hora de autorización: se registra al confirmar. La firma queda vinculada a esta versión del reporte (v${T.version}).</p></div>
+ <div class="card"><h4>Firma del técnico · ${esc(T.tecnico)}</h4>${T.firma_tecnico&&!T.__refirmarT?`<img src="${imgUrl(T.id,T.firma_tecnico)}" style="max-width:100%;height:90px;object-fit:contain"><br><button class="chico sec" onclick="T.__refirmarT=1;pintar()">Firmar de nuevo</button>`:`<canvas class="pad" id="padT" style="height:140px"></canvas><button class="chico sec" onclick="PAD_T.limpiar()" style="margin-top:6px">Borrar firma</button>`}</div>
+ <button class="btn-grande" onclick="confirmarFirma()">CONFIRMAR Y FIRMAR</button>`}
+async function confirmarFirma(){const nom=$('#fc_nom').value.trim();if(!nom)return toast('Escribe el nombre de quien autoriza');if(PAD_C.vacio())return toast('Falta la firma del cliente');
+ const conT=$('#padT');if(conT&&PAD_T.vacio())return toast('Falta la firma del técnico');if(!T.resultado)return toast('Falta el resultado (paso 8)');
+ const imgT=conT?PAD_T.png():null,img=PAD_C.png(),body={cid:uid(),imagen:img,nombre:nom,cargo:$('#fc_car').value.trim(),comentarios_cliente:$('#fc_com').value};
+ try{await guardarPendiente();if(T.estado==='ejecucion'||T.estado==='en_sitio')await resultado(T.resultado,true);
+  if(imgT){await OFF.enviar(`/api/tickets/${T.id}/firma-tecnico`,'POST',{imagen:imgT});T.firma_tecnico=imgT}
+  const r=await OFF.enviar(`/api/tickets/${T.id}/firma-cliente`,'POST',body);
+  Object.assign(T,{firma_cliente:img,cliente_firma_nombre:nom,cliente_firma_cargo:body.cargo,comentarios_cliente:body.comentarios_cliente,cliente_firma_ts:new Date().toISOString(),estado:T.resultado,estado_txt:CAT.ESTADOS[T.resultado],firma_vigente:true});delete T.__refirmar;delete T.__refirmarT;
+  cachear();toast(r.encolado?'Firma guardada en el teléfono; se enviará al recuperar conexión':'Firma registrada · PDF generado');if(!r.encolado)await cargarTicket(T.id);PASO=9;pintar()}catch(e){toast(e.message)}}
+
+// ---------- envío ----------
+async function enviarRevision(){const f=requisitos().filter(r=>!r[0]);if(f.length)return toast('Falta: '+f.map(r=>r[1]).join(', '));
+ try{const r=await cambiarEstado('revision');toast(r.encolado?'Se enviará a revisión al recuperar conexión':'Enviado a revisión ✓');pintar()}catch(e){toast(e.message)}}
+async function compartir(){const nombre=`${T.folio}.pdf`,txt=`Reporte de servicio ${T.folio} · ${T.cliente_nombre} · Clima 3, Centro de Servicio Autorizado Carrier`;
+ try{const b=await (await fetch(pdfUrl(T.id))).blob();const file=new File([b],nombre,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:nombre,text:txt});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nombre;a.click()}catch(e){if(e.name==='AbortError')return}
+ location.href=`mailto:${encodeURIComponent(T.email||'')}?subject=${encodeURIComponent('Reporte de servicio '+T.folio)}&body=${encodeURIComponent(txt+'\n\nSe adjunta el reporte en PDF (descargado en este equipo).')}`}
+
+// ---------- arranque ----------
+async function porHash(){const m=/^#t(\d+)/.exec(location.hash);if(m){if(T&&T.id===+m[1])return;MODO='ticket';try{CAT=await OFF.leer('/api/catalogos');await cargarTicket(+m[1]);PASO=pasoInicial();pintar()}catch(e){inicio()}}else if(MODO!=='inicio'||!T)inicio()}
+porHash();OFF.aviso();OFF.sync();addEventListener('hashchange',porHash);
+vivo(d=>{if(d.tipo==='ticket_asignado'){toast('🔔 Tienes un ticket nuevo asignado');try{if(Notification.permission==='granted')new Notification('Clima 3 Tec',{body:'Tienes un ticket de servicio nuevo asignado'})}catch(e){}}
+ if(MODO==='inicio')inicio()});
+try{if(window.Notification&&Notification.permission==='default')setTimeout(()=>Notification.requestPermission(),4000)}catch(e){}
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');
 </script></body></html>

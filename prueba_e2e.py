@@ -24,7 +24,7 @@ open('/tmp/antes.png','wb').write(png(320,240,(150,110,80))); open('/tmp/despues
 with sync_playwright() as p:
     b=p.chromium.launch(); 
     cel=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,geolocation={'latitude':29.0729,'longitude':-110.9559},permissions=['geolocation'],is_mobile=True,has_touch=True)
-    pg=cel.new_page(); pg.goto(B); pg.fill('#u','tec1'); pg.fill('#p','demo123'); pg.click('text=Entrar'); pg.wait_for_url('**/tecnico.html'); pg.wait_for_timeout(800)
+    pg=cel.new_page(); pg.goto(B); pg.fill('#u','tec1'); pg.fill('#p','demo123'); pg.click('text=Entrar'); pg.wait_for_url('**/tecnico.html*'); pg.goto(B + '/bolsa.html'); pg.wait_for_timeout(800)
     pg.screenshot(path='capturas/tecnico-1-bolsa.png',full_page=True)
     pg.locator('.card',has_text='DEMO Oficinas Centro').locator('text=Aceptar trabajo').click(); pg.wait_for_selector('text=Voy en camino')
     pg.click('text=Voy en camino'); pg.wait_for_selector('text=Llegué al sitio'); pg.click('text=Llegué al sitio'); pg.wait_for_selector('text=Terminar trabajo')
